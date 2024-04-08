@@ -55,7 +55,7 @@ int add_patientinfo(PatientInfo **first_PatientInfo, FILE *file_ptr);
 void freeLinkedList(PatientInfo *head);
 
 //----------------------------------------This function is used to read the patient data from a file and display it.---------------------------------------
-void readFromFile(const char *filename);
+void readFromFile(const char *filename, int choice);
 
 void Confirm_appointment_bed(const char *filename, int choice);
 
@@ -81,7 +81,13 @@ int main()
 {
     int choice, re;
     PatientInfo *first_PatientInfo = NULL;
-    FILE *file_ptr = fopen("patient_info.bin", "ab+"); // Pointer to a FILE structure
+    FILE *file_ptr = fopen("patient_info.bin", "ab+"); // Open the file for reading and writing
+
+    if (file_ptr == NULL)
+    {
+        printf("Unable to open file patient_info.bin\n");
+        return 1;
+    }
 
     while (1)
     {
@@ -230,7 +236,7 @@ int adminAccess(PatientInfo **first_PatientInfo, FILE *file_ptr)
         printf("\t\t\t\t\t\t| 1. Appoint Patient Bed / Appointment           |\n");
         printf("\t\t\t\t\t\t| 2. Display All Patients information            |\n");
         printf("\t\t\t\t\t\t| 3. DOCTOR Management                           |\n");
-        printf("\t\t\t\t\t\t| 4. Appoint NEW DOCTOR Patients                 |\n");
+        printf("\t\t\t\t\t\t| 4. REmove Patients information                 |\n");
         printf("\t\t\t\t\t\t| 5. Make Bill                                   |\n");
         printf("\t\t\t\t\t\t| 6. Update Blood Bank                           |\n");
         printf("\t\t\t\t\t\t| 0. EXIT                                        |\n");
@@ -241,10 +247,10 @@ int adminAccess(PatientInfo **first_PatientInfo, FILE *file_ptr)
         switch (choice)
         {
         case 1:
-            readFromFile("patient_info.bin");
+            readFromFile("patient_info.bin", choice);
             break;
         case 2:
-            readFromFile("patient_info.bin");
+            readFromFile("patient_info.bin", choice);
             // Handle case 2
             break;
         case 3:
@@ -260,7 +266,7 @@ int adminAccess(PatientInfo **first_PatientInfo, FILE *file_ptr)
             pressEnterToContinue(); // Pause before returning to the menu
             break;
         case 4:
-            // Handle case 4
+
             break;
         case 5:
             // Handle case 5
@@ -502,7 +508,7 @@ void Confirm_appointment_bed(const char *filename, int choice)
 }
 
 // Function to read data from file
-void readFromFile(const char *filename)
+void readFromFile(const char *filename, int choice)
 {
     clearScreen();
 
@@ -534,20 +540,23 @@ void readFromFile(const char *filename)
 
     fclose(file);
 
-    int choice;
-    printf("\n\n\n");
-    printf("\t\t\t\t\t1.To Confirm Bed\n");
-    printf("\t\t\t\t\t2.To Confirm appointment\n");
-    printf("\t\t\t\t\t9. Exit\n");
-
-    printf("Enter your choice: ");
-    if (scanf("%d", &choice) == 1)
+    if (choice == 1)
     {
-        if (choice == 9)
+        int choice2;
+        printf("\n\n\n");
+        printf("\t\t\t\t\t1.To Confirm Bed\n");
+        printf("\t\t\t\t\t2.To Confirm appointment\n");
+        printf("\t\t\t\t\t9. Exit\n");
+
+        printf("Enter your choice: ");
+        if (scanf("%d", &choice2) == 1)
         {
-            return;
+            if (choice2 == 9)
+            {
+                return;
+            }
+            Confirm_appointment_bed(filename, choice2);
         }
-        Confirm_appointment_bed(filename, choice);
     }
 
     pressEnterToContinue();
@@ -566,6 +575,7 @@ void freeLinkedList(PatientInfo *head)
         current = next;
     }
 }
+
 void confirmation_bed(const char *filename)
 {
     FILE *file = fopen(filename, "rb+");
