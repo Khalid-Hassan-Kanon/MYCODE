@@ -59,6 +59,10 @@ void readFromFile(const char *filename, int choice);
 
 void Confirm_appointment_bed(const char *filename, int choice);
 
+void deletePatient(FILE *file_ptr, int id);
+
+void PatientGuideline();
+
 void clearScreen()
 {
 #ifdef _WIN32
@@ -142,39 +146,44 @@ int appointment(PatientInfo **first_PatientInfo, FILE *file_ptr)
     clearScreen();
     int choice, choice2;
 
-    while (choice != 0)
+    while (1)
     {
+    manu:
         printf("\t\t\t\t\t\t--------------------------------------------------\n");
         printf("\t\t\t\t\t\t|           Appointment     MENU                 |\n");
         printf("\t\t\t\t\t\t-------------------------------------------------\n");
-        printf("\t\t\t\t\t\t| 0. New Patient Registration                    |\n");
-        printf("\t\t\t\t\t\t| 1. To See Confirmation                         |\n");
-        printf("\t\t\t\t\t\t| 2. Booking Bed                                  |\n");
-        printf("\t\t\t\t\t\t| 9. Back to Main Menu                           |\n");
+        printf("\t\t\t\t\t\t| 1. New Patient Registration                    |\n");
+        printf("\t\t\t\t\t\t| 2. To See Confirmation                         |\n");
+        printf("\t\t\t\t\t\t| 3. Booking Bed                                 |\n");
+        printf("\t\t\t\t\t\t| 4. Patient Guideline                           |\n");
+        printf("\t\t\t\t\t\t| 0. Back to Main Menu                           |\n");
         printf("\t\t\t\t\t\t-------------------------------------------------\n\n");
         scanf("%d", &choice);
-        if (choice == 0)
+        switch (choice)
         {
+        case 1:
             clearScreen();
             add_patientinfo(first_PatientInfo, file_ptr);
-            return 0;
-        }
-        else if (choice == 9)
-        {
-            return 0;
-        }
-        else if (choice == 1)
-        {
+            goto manu;
+        case 2:
             confirmation("patient_info.bin");
-        }
-        else if (choice == 2)
-        {
+            goto manu;
+        case 3:
             confirmation_bed("patient_info.bin");
+            goto manu;
+        case 4:
+            PatientGuideline();
+            goto manu;
+        case 0:
+            return 0;
+        default:
+            printf("Invalid choice!\n");
         }
+
+        pressEnterToContinue();
+        clearScreen();
+        return 0;
     }
-    pressEnterToContinue();
-    clearScreen();
-    return 0;
 }
 
 void confirmation(const char *filename)
@@ -266,7 +275,10 @@ int adminAccess(PatientInfo **first_PatientInfo, FILE *file_ptr)
             pressEnterToContinue(); // Pause before returning to the menu
             break;
         case 4:
-
+            printf("Enter the ID of the patient you want to delete: ");
+            int deleteId;
+            scanf("%d", &deleteId);
+            deletePatient(file_ptr, deleteId);
             break;
         case 5:
             // Handle case 5
@@ -408,7 +420,7 @@ int add_patientinfo(PatientInfo **first_PatientInfo, FILE *file_ptr)
 
     // Generate and print a random number between 0 and RAND_MAX
     new_Patient->serial = rand() % 100;
-    strcpy(new_Patient->confirmation, "Waiting");
+    strcpy(new_Patient->confirmation, "Pending");
     strcpy(new_Patient->time, "\0");
     strcpy(new_Patient->bed, "\0");
     new_Patient->next = NULL;
@@ -600,7 +612,7 @@ void confirmation_bed(const char *filename)
         if (id == patient.serial)
         {
 
-            strcpy(patient.bed, "Waiting");
+            strcpy(patient.bed, "Pending");
 
             // Move the file pointer back to the beginning of the current record
             fseek(file, -sizeof(PatientInfo), SEEK_CUR);
@@ -608,7 +620,7 @@ void confirmation_bed(const char *filename)
             // Write the updated patient data
             fwrite(&patient, sizeof(PatientInfo), 1, file);
 
-            printf("Bed Booking in Waiting.\n");
+            printf("Bed Booking is Pending.\n");
             fclose(file);
             return;
         }
@@ -616,4 +628,91 @@ void confirmation_bed(const char *filename)
 
     printf("Patient with ID %d not found.\n", id);
     fclose(file);
+}
+
+void deletePatient(FILE *file_ptr, int id)
+{
+    if (file_ptr == NULL)
+    {
+        printf("Invalid file pointer.\n");
+        return;
+    }
+
+    FILE *temp = fopen("temp.bin", "wb+");
+    if (temp == NULL)
+    {
+        printf("Error creating temporary file.\n");
+        return;
+    }
+
+    PatientInfo patient;
+    int found = 0; // Flag to indicate if the patient with the given ID is found
+
+    // Read data from the original file and write to the temporary file, excluding the record to be deleted
+    while (fread(&patient, sizeof(PatientInfo), 1, file_ptr) == 1)
+    {
+        if (patient.serial != id)
+        {
+            fwrite(&patient, sizeof(PatientInfo), 1, temp);
+        }
+        else
+        {
+            found = 1; // Patient with given ID found
+        }
+    }
+
+    rewind(file_ptr);
+    fclose(file_ptr); // Close the original file
+
+    file_ptr = fopen("patient_info.bin", "wb");
+    if (file_ptr == NULL)
+    {
+        printf("Error opening original file for writing.\n");
+        fclose(temp);
+        return;
+    }
+
+    // Rewrite the modified data from the temporary file to the original file
+    rewind(temp);
+    while (fread(&patient, sizeof(PatientInfo), 1, temp) == 1)
+    {
+        if (patient.serial != id)
+        {
+            fwrite(&patient, sizeof(PatientInfo), 1, file_ptr);
+        }
+    }
+
+    fclose(temp); // Close the temporary file
+    if (remove("temp.bin") != 0)
+    {
+        printf("Error removing temporary file.\n");
+    }
+
+    if (!found)
+    {
+        printf("Patient with ID %d not found.\n", id);
+    }
+    else
+    {
+        printf("Patient with ID %d deleted successfully.\n", id);
+    }
+}
+
+void PatientGuideline()
+{
+    printf("\n\t\t **** How it Works? ****\n\n");
+    printf(" -> You have to give information in this formate:\n");
+    printf("    - Full Name\n");
+    printf("    - Date of Birth (in the format YYYY-MM-DD)\n");
+    printf("    - Phone Number\n");
+    printf("    - Doctor's Name\n");
+    printf("    - Gender (M for Male, F for Female)\n");
+    printf("    - Confirmation Status (e.g., Confirmed, Pending)\n");
+    printf(" -> Full Name can be maximum 50 characters long.\n");
+    printf(" -> Date of Birth should be in the format YYYY-MM-DD.\n");
+    printf(" -> Phone Number can be maximum 15 characters long and unique for every patient.\n");
+    printf(" -> Doctor's Name can be maximum 50 characters long.\n");
+    printf(" -> Gender should be 'M' for Male or 'F' for Female.\n");
+    pressEnterToContinue();
+    clearScreen();
 }
