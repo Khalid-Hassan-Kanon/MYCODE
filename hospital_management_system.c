@@ -33,11 +33,11 @@ typedef struct PatientInfo
 int appointment(PatientInfo **first_PatientInfo, FILE *file_ptr);
 
 //---------------------------------------- This function displays a confirmation message----------------------------------------------------------
-void confirmation(const char *filename);
+void confirmation();
 
 void confirmation_bed(const char *filename);
 //---------------------------------------- This function is used to handle the admin access functionality---------------------------------------
-int adminAccess(PatientInfo **first_PatientInfo, FILE *file_ptr);
+int adminAccess(FILE *file_ptr);
 
 //---------------------------------------- This function is used to display the hospital information---------------------------------------
 int information();
@@ -56,10 +56,9 @@ void freeLinkedList(PatientInfo *head);
 
 //----------------------------------------This function is used to read the patient data from a file and display it.---------------------------------------
 void readFromFile(const char *filename, int choice);
-
 void Confirm_appointment_bed(const char *filename, int choice);
 
-void deletePatient(FILE *file_ptr, int id);
+void deletePatient(int id);
 
 void PatientGuideline();
 
@@ -85,13 +84,7 @@ int main()
 {
     int choice, re;
     PatientInfo *first_PatientInfo = NULL;
-    FILE *file_ptr = fopen("patient_info.bin", "ab+"); // Open the file for reading and writing
-
-    if (file_ptr == NULL)
-    {
-        printf("Unable to open file patient_info.bin\n");
-        return 1;
-    }
+    FILE *file_ptr = NULL;
 
     while (1)
     {
@@ -114,7 +107,7 @@ int main()
             re = PASSWORD();
             if (re == 1)
             {
-                adminAccess(&first_PatientInfo, file_ptr); // Call adminAccess function
+                adminAccess(file_ptr); // Call adminAccess function
             }
             break;
         case 2:
@@ -124,9 +117,9 @@ int main()
             information();
             break;
         case 0:
-            printf("\t\t\t\t---------------------------------------------------------------------\n");
-            printf("\t\t\t\t|               Exiting the program. Goodbye!                       |\n");
-            printf("\t\t\t\t---------------------------------------------------------------------\n");
+            printf("\t\t\t\t\t\t---------------------------------------------------------------------\n");
+            printf("\t\t\t\t\t\t|               Exiting the program. Goodbye!                       |\n");
+            printf("\t\t\t\t\t\t---------------------------------------------------------------------\n");
 
             freeLinkedList(first_PatientInfo);
             fclose(file_ptr);
@@ -141,14 +134,12 @@ int main()
 
 int appointment(PatientInfo **first_PatientInfo, FILE *file_ptr)
 {
-    pressEnterToContinue();
 
     clearScreen();
-    int choice, choice2;
+    int choice;
 
     while (1)
     {
-    manu:
         printf("\t\t\t\t\t\t--------------------------------------------------\n");
         printf("\t\t\t\t\t\t|           Appointment     MENU                 |\n");
         printf("\t\t\t\t\t\t-------------------------------------------------\n");
@@ -158,40 +149,54 @@ int appointment(PatientInfo **first_PatientInfo, FILE *file_ptr)
         printf("\t\t\t\t\t\t| 4. Patient Guideline                           |\n");
         printf("\t\t\t\t\t\t| 0. Back to Main Menu                           |\n");
         printf("\t\t\t\t\t\t-------------------------------------------------\n\n");
-        scanf("%d", &choice);
+
+        printf("Enter your choice: ");
+        if (scanf("%d", &choice) != 1)
+        {
+            // If user enters non-integer input
+            printf("Invalid input! Please enter a number.\n");
+            while (getchar() != '\n')
+                ;     // Clear input buffer
+            continue; // Continue to the beginning of the loop
+        }
+
         switch (choice)
         {
         case 1:
             clearScreen();
             add_patientinfo(first_PatientInfo, file_ptr);
-            goto manu;
+            break;
         case 2:
-            confirmation("patient_info.bin");
-            goto manu;
+            clearScreen();
+            confirmation();
+            break;
         case 3:
+            clearScreen();
             confirmation_bed("patient_info.bin");
-            goto manu;
+            break;
         case 4:
+            clearScreen();
             PatientGuideline();
-            goto manu;
+            break;
         case 0:
+            clearScreen();
+
             return 0;
         default:
             printf("Invalid choice!\n");
         }
-
-        pressEnterToContinue();
-        clearScreen();
-        return 0;
     }
+
+    return 0;
 }
 
-void confirmation(const char *filename)
+void confirmation()
 {
-    FILE *file = fopen(filename, "rb+");
-    if (file == NULL)
+    FILE *file_ptr = fopen("patient_info.bin", "rb"); // Open the file for reading
+
+    if (file_ptr == NULL)
     {
-        printf("Unable to open file %s\n", filename);
+        printf("File cannot be opened!\n");
         return;
     }
 
@@ -199,13 +204,14 @@ void confirmation(const char *filename)
     printf("Enter ID: ");
     if (scanf("%d", &id) != 1)
     {
-        printf("Invalid input for  ID.\n");
-        fclose(file);
+        printf("Invalid input for ID.\n");
+        fclose(file_ptr);
         return;
     }
 
     PatientInfo patient;
-    while (fread(&patient, sizeof(PatientInfo), 1, file) == 1)
+    int found = 0;
+    while (fread(&patient, sizeof(PatientInfo), 1, file_ptr) == 1)
     {
         if (id == patient.serial)
         {
@@ -218,48 +224,66 @@ void confirmation(const char *filename)
             printf("\t\t\t\t\t| ID:             %-20d|\n", patient.serial);
             printf("\t\t\t\t\t| Confirmation:   %-20s|\n", patient.confirmation);
             printf("\t\t\t\t\t| Time:           %-20s|\n", patient.time);
-
             printf("\t\t\t\t\t-------------------------------------\n");
-            fclose(file);
-            pressEnterToContinue();
-            clearScreen();
-            return;
+            found = 1;
+            break; // Stop searching after finding the patient
         }
     }
 
-    printf("Patient with ID %d not found.\n", id);
-    fclose(file);
+    if (!found)
+    {
+        printf("Patient with ID %d not found.\n", id);
+    }
+
+    fclose(file_ptr);
+    clearScreen();
 }
-
-int adminAccess(PatientInfo **first_PatientInfo, FILE *file_ptr)
+int adminAccess(FILE *file_ptr)
 {
+    clearScreen();
     int choice, re;
+    file_ptr = fopen("patient_info.bin", "ab+"); // Open the file for reading and writing
 
+    if (file_ptr == NULL)
+    {
+        printf("Unable to open file patient_info.bin\n");
+        return 1;
+    }
     while (1)
     {
         // clearScreen();
         printf("\n\n\n"); // Add spacing for better alignment
         printf("\t\t\t\t\t\t-------------------------------------------------\n");
-        printf("\t\t\t\t\t\t|               MAIN MENU                       |\n");
+        printf("\t\t\t\t\t\t#               MAIN MENU                        #\n");
         printf("\t\t\t\t\t\t-------------------------------------------------\n");
-        printf("\t\t\t\t\t\t| 1. Appoint Patient Bed / Appointment           |\n");
-        printf("\t\t\t\t\t\t| 2. Display All Patients information            |\n");
-        printf("\t\t\t\t\t\t| 3. DOCTOR Management                           |\n");
-        printf("\t\t\t\t\t\t| 4. REmove Patients information                 |\n");
-        printf("\t\t\t\t\t\t| 5. Make Bill                                   |\n");
-        printf("\t\t\t\t\t\t| 6. Update Blood Bank                           |\n");
-        printf("\t\t\t\t\t\t| 0. EXIT                                        |\n");
+        printf("\t\t\t\t\t\t# Enter 1 to Appoint Patient Bed / Appointment   #\n");
+        printf("\t\t\t\t\t\t# Enter 2 to Display All Patients Information    #\n");
+        printf("\t\t\t\t\t\t# Enter 3 for DOCTOR Management                  #\n");
+        printf("\t\t\t\t\t\t# Enter 4 to Remove Patients Information         #\n");
+        printf("\t\t\t\t\t\t# Enter 5 to Make a Bill                         #\n");
+        printf("\t\t\t\t\t\t# Enter 6 to Update Blood Bank                   #\n");
+        printf("\t\t\t\t\t\t# Enter 0 to EXIT                                #\n");
         printf("\t\t\t\t\t\t-------------------------------------------------\n\n");
 
         printf("\t\t\t\tENTER Your choice: "); // Prompt for user input
-        scanf("%d", &choice);
+        if (scanf("%d", &choice) != 1)
+        {
+            // If user enters non-integer input
+            printf("Invalid input! Please enter a number.\n");
+            while (getchar() != '\n')
+                ;     // Clear input buffer
+            continue; // Continue to the beginning of the loop
+        }
+
         switch (choice)
         {
         case 1:
             readFromFile("patient_info.bin", choice);
+            clearScreen();
             break;
         case 2:
             readFromFile("patient_info.bin", choice);
+            clearScreen();
             // Handle case 2
             break;
         case 3:
@@ -277,8 +301,10 @@ int adminAccess(PatientInfo **first_PatientInfo, FILE *file_ptr)
         case 4:
             printf("Enter the ID of the patient you want to delete: ");
             int deleteId;
+
             scanf("%d", &deleteId);
-            deletePatient(file_ptr, deleteId);
+            deletePatient(deleteId);
+            clearScreen();
             break;
         case 5:
             // Handle case 5
@@ -287,12 +313,13 @@ int adminAccess(PatientInfo **first_PatientInfo, FILE *file_ptr)
             // Handle case 6
             break;
         case 0:
-            return 0; // Exit the function
+            clearScreen();
+            return 0;
+
         default:
             printf("\t\t\t\tInvalid choice. Please enter a valid option.\n");
         }
     }
-    return 0;
 }
 
 int information()
@@ -346,10 +373,10 @@ int PASSWORD()
     {
         clearScreen();
         printf("\n\n\n"); // Add some spacing for better alignment
-        printf("\t\t#################################################\n");
-        printf("\t\t#               ACCESS GRANTED                  #\n");
-        printf("\t\t#               ACCESS GRANTED                  #\n");
-        printf("\t\t#################################################\n\n");
+        printf("\t\t\t\t\t\t#################################################\n");
+        printf("\t\t\t\t\t\t#               ACCESS GRANTED                  #\n");
+        printf("\t\t\t\t\t\t#               ACCESS GRANTED                  #\n");
+        printf("\t\t\t\t\t\t#################################################\n\n");
         waiting();
         return 1;
     }
@@ -357,10 +384,10 @@ int PASSWORD()
     {
         clearScreen();
         printf("\n\n\n"); // Add some spacing for better alignment
-        printf("\t\t#################################################\n");
-        printf("\t\t#               ACCESS DENIED                   #\n");
-        printf("\t\t#              ACCESS DENIED                    #\n");
-        printf("\t\t#################################################\n\n");
+        printf("\t\t\t\t\t\t#################################################\n");
+        printf("\t\t\t\t\t\t#               ACCESS DENIED                   #\n");
+        printf("\t\t\t\t\t\t#               ACCESS DENIED                   #\n");
+        printf("\t\t\t\t\t\t#################################################\n\n");
         waiting();
         return 0;
     }
@@ -419,7 +446,7 @@ int add_patientinfo(PatientInfo **first_PatientInfo, FILE *file_ptr)
     srand(time(NULL));
 
     // Generate and print a random number between 0 and RAND_MAX
-    new_Patient->serial = rand() % 100;
+    new_Patient->serial = rand() % 1000;
     strcpy(new_Patient->confirmation, "Pending");
     strcpy(new_Patient->time, "\0");
     strcpy(new_Patient->bed, "\0");
@@ -524,10 +551,11 @@ void readFromFile(const char *filename, int choice)
 {
     clearScreen();
 
-    FILE *file = fopen(filename, "rb");
-    if (file == NULL)
+    FILE *file_ptr = fopen("patient_info.bin", "rb+"); // Open the file for reading and writing
+
+    if (file_ptr == NULL)
     {
-        printf("Unable to open file %s\n", filename);
+        printf("File cannot be open!\n");
         return;
     }
 
@@ -535,7 +563,7 @@ void readFromFile(const char *filename, int choice)
     PatientInfo patient;
 
     // Read data until the end of the file
-    while (fread(&patient, sizeof(PatientInfo), 1, file) == 1)
+    while (fread(&patient, sizeof(PatientInfo), 1, file_ptr) == 1)
     {
         printf("\t\t\t\t\t----------------------------------------\n");
         printf("\t\t\t\t\t| Name:           %-20s|\n", patient.full_name);
@@ -547,10 +575,11 @@ void readFromFile(const char *filename, int choice)
         printf("\t\t\t\t\t| Confirmation:   %-20s|\n", patient.confirmation);
         printf("\t\t\t\t\t| Time:           %-20s|\n", patient.time);
         printf("\t\t\t\t\t| Bed Number:     %-20s|\n", patient.bed);
+        // printf("\t\t\t\t\t| Adress:         %-20s|\n", patient.next);
         printf("\t\t\t\t\t-------------------------------------\n");
     }
 
-    fclose(file);
+    fclose(file_ptr);
 
     if (choice == 1)
     {
@@ -630,18 +659,14 @@ void confirmation_bed(const char *filename)
     fclose(file);
 }
 
-void deletePatient(FILE *file_ptr, int id)
+void deletePatient(int id)
 {
-    if (file_ptr == NULL)
-    {
-        printf("Invalid file pointer.\n");
-        return;
-    }
+    FILE *file_ptr = fopen("patient_info.bin", "rb+"); // Open the file for reading and writing
 
     FILE *temp = fopen("temp.bin", "wb+");
-    if (temp == NULL)
+    if (temp == NULL || file_ptr == NULL)
     {
-        printf("Error creating temporary file.\n");
+        printf("File cannot be open!\n");
         return;
     }
 
@@ -687,7 +712,7 @@ void deletePatient(FILE *file_ptr, int id)
     {
         printf("Error removing temporary file.\n");
     }
-
+    fclose(file_ptr); // Close the original file
     if (!found)
     {
         printf("Patient with ID %d not found.\n", id);
@@ -701,18 +726,12 @@ void deletePatient(FILE *file_ptr, int id)
 void PatientGuideline()
 {
     printf("\n\t\t **** How it Works? ****\n\n");
-    printf(" -> You have to give information in this formate:\n");
-    printf("    - Full Name\n");
-    printf("    - Date of Birth (in the format YYYY-MM-DD)\n");
-    printf("    - Phone Number\n");
-    printf("    - Doctor's Name\n");
-    printf("    - Gender (M for Male, F for Female)\n");
-    printf("    - Confirmation Status (e.g., Confirmed, Pending)\n");
-    printf(" -> Full Name can be maximum 50 characters long.\n");
-    printf(" -> Date of Birth should be in the format YYYY-MM-DD.\n");
-    printf(" -> Phone Number can be maximum 15 characters long and unique for every patient.\n");
-    printf(" -> Doctor's Name can be maximum 50 characters long.\n");
-    printf(" -> Gender should be 'M' for Male or 'F' for Female.\n");
-    pressEnterToContinue();
-    clearScreen();
+    printf(" -> You have to entry information in this formate:\n");
+    printf("1. Full Name: Maximum 50 characters\n");
+    printf("2. Date of Birth: Format (YYYY-MM-DD)\n");
+    printf("3. Phone Number: Maximum 15 characters (unique for each patient)\n");
+    printf("4. Doctor's Name: Maximum 50 characters\n");
+    printf("5. Gender: 'M' for Male, 'F' for Female\n");
+    printf("6. Confirmation Status: 'Confirmed' or 'Pending'\n\n");
+    printf("Make sure to follow these guidelines for accurate data entry.\n\n");
 }
