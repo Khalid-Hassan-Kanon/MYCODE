@@ -23,6 +23,8 @@ typedef struct PatientInfo
 
     char time[10];
 
+    char room[15];
+
     char bed[15];
 
     struct PatientInfo *next;
@@ -56,6 +58,7 @@ void freeLinkedList(PatientInfo *head);
 
 //----------------------------------------This function is used to read the patient data from a file and display it.---------------------------------------
 void readFromFile(const char *filename, int choice);
+
 void Confirm_appointment_bed(const char *filename, int choice);
 
 void deletePatient(int id);
@@ -192,6 +195,11 @@ int appointment(PatientInfo **first_PatientInfo, FILE *file_ptr)
 
 void confirmation()
 {
+    printf("1. Confirmation for Bed\n");
+    printf("2. Confirmation for appointment\n");
+    int choise;
+    printf("Enter choise: ");
+    scanf("%d", &choise);
     FILE *file_ptr = fopen("patient_info.bin", "rb"); // Open the file for reading
 
     if (file_ptr == NULL)
@@ -215,18 +223,37 @@ void confirmation()
     {
         if (id == patient.serial)
         {
-            printf("\t\t\t\t\t----------------------------------------\n");
-            printf("\t\t\t\t\t| Name:           %-20s|\n", patient.full_name);
-            printf("\t\t\t\t\t| Date of Birth:  %-20s|\n", patient.date_of_birth);
-            printf("\t\t\t\t\t| Phone Number:   %-20s|\n", patient.phone_number);
-            printf("\t\t\t\t\t| Doctor:         %-20s|\n", patient.doctor);
-            printf("\t\t\t\t\t| Gender:         %-20c|\n", patient.gender);
-            printf("\t\t\t\t\t| ID:             %-20d|\n", patient.serial);
-            printf("\t\t\t\t\t| Confirmation:   %-20s|\n", patient.confirmation);
-            printf("\t\t\t\t\t| Time:           %-20s|\n", patient.time);
-            printf("\t\t\t\t\t-------------------------------------\n");
-            found = 1;
-            break; // Stop searching after finding the patient
+            if (choise == 1)
+            {
+                printf("\t\t\t\t\t----------------------------------------\n");
+                printf("\t\t\t\t\t| Name:           %-20s|\n", patient.full_name);
+                printf("\t\t\t\t\t| Date of Birth:  %-20s|\n", patient.date_of_birth);
+                printf("\t\t\t\t\t| Phone Number:   %-20s|\n", patient.phone_number);
+                printf("\t\t\t\t\t| Doctor:         %-20s|\n", patient.doctor);
+                printf("\t\t\t\t\t| Gender:         %-20c|\n", patient.gender);
+                printf("\t\t\t\t\t| ID:             %-20d|\n", patient.serial);
+                printf("\t\t\t\t\t| Confirmation:   %-20s|\n", patient.confirmation);
+                printf("\t\t\t\t\t| Room Number:    %-20s|\n", patient.room);
+                printf("\t\t\t\t\t| Bed Number:     %-20s|\n", patient.bed);
+                printf("\t\t\t\t\t-------------------------------------\n");
+                found = 1;
+                break; // Stop searching after finding the patient
+            }
+            else if (choise == 2)
+            {
+                printf("\t\t\t\t\t----------------------------------------\n");
+                printf("\t\t\t\t\t| Name:           %-20s|\n", patient.full_name);
+                printf("\t\t\t\t\t| Date of Birth:  %-20s|\n", patient.date_of_birth);
+                printf("\t\t\t\t\t| Phone Number:   %-20s|\n", patient.phone_number);
+                printf("\t\t\t\t\t| Doctor:         %-20s|\n", patient.doctor);
+                printf("\t\t\t\t\t| Gender:         %-20c|\n", patient.gender);
+                printf("\t\t\t\t\t| ID:             %-20d|\n", patient.serial);
+                printf("\t\t\t\t\t| Confirmation:   %-20s|\n", patient.confirmation);
+                printf("\t\t\t\t\t| Time:           %-20s|\n", patient.time);
+                printf("\t\t\t\t\t-------------------------------------\n");
+                found = 1;
+                break; // Stop searching after finding the patient
+            }
         }
     }
 
@@ -236,8 +263,10 @@ void confirmation()
     }
 
     fclose(file_ptr);
+    pressEnterToContinue();
     clearScreen();
 }
+
 int adminAccess(FILE *file_ptr)
 {
     clearScreen();
@@ -449,6 +478,7 @@ int add_patientinfo(PatientInfo **first_PatientInfo, FILE *file_ptr)
     new_Patient->serial = rand() % 1000;
     strcpy(new_Patient->confirmation, "Pending");
     strcpy(new_Patient->time, "\0");
+    strcpy(new_Patient->room, "\0");
     strcpy(new_Patient->bed, "\0");
     new_Patient->next = NULL;
     if (*first_PatientInfo == NULL)
@@ -514,8 +544,11 @@ void Confirm_appointment_bed(const char *filename, int choice)
 
             if (choice == 1)
             {
-                printf("Enter Room and  Bed Number: ");
+                printf("Enter Room Number: ");
                 getchar(); // Consume newline character left in buffer
+                fgets(patient.room, sizeof(patient.room), stdin);
+                patient.room[strcspn(patient.room, "\n")] = '\0';
+                printf("Enter Bed Number: ");
                 fgets(patient.bed, sizeof(patient.bed), stdin);
                 patient.bed[strcspn(patient.bed, "\n")] = '\0';
                 printf("Bed confirmed.\n");
@@ -546,7 +579,6 @@ void Confirm_appointment_bed(const char *filename, int choice)
     fclose(file);
 }
 
-// Function to read data from file
 void readFromFile(const char *filename, int choice)
 {
     clearScreen();
@@ -574,6 +606,7 @@ void readFromFile(const char *filename, int choice)
         printf("\t\t\t\t\t| ID:             %-20d|\n", patient.serial);
         printf("\t\t\t\t\t| Confirmation:   %-20s|\n", patient.confirmation);
         printf("\t\t\t\t\t| Time:           %-20s|\n", patient.time);
+        printf("\t\t\t\t\t| Bed Number:     %-20s|\n", patient.room);
         printf("\t\t\t\t\t| Bed Number:     %-20s|\n", patient.bed);
         // printf("\t\t\t\t\t| Adress:         %-20s|\n", patient.next);
         printf("\t\t\t\t\t-------------------------------------\n");
@@ -721,6 +754,7 @@ void deletePatient(int id)
     {
         printf("Patient with ID %d deleted successfully.\n", id);
     }
+    pressEnterToContinue();
 }
 
 void PatientGuideline()
